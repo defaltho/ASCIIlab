@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ASCIIlab — defaltho</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700&display=swap">
+<style>
+/* ============================================================
+   defaltho — tool.css (inlined)
+   ============================================================ */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #000; overflow: hidden; font-family: 'Inter', Helvetica, Arial, sans-serif; }
+canvas { display: block; }
+#panel {
+  position: fixed; top: 22px; left: 22px;
+  z-index: 200; width: 208px;
+  background: rgba(0,0,0,0.82); border-radius: 6px;
+  padding: 12px 14px; color: #fff; font-size: 11px;
+  user-select: none;
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  max-height: calc(100vh - 44px); overflow-y: auto;
+  scrollbar-width: thin; scrollbar-color: #444 transparent;
+}
+#panel::-webkit-scrollbar { width: 6px; }
+#panel::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
+.panel-title {
+  font-weight: 700; font-size: 11px;
+  text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px;
+}
+.ctl { margin-bottom: 7px; }
+.ctl .lbl {
+  display: flex; justify-content: space-between; align-items: baseline;
+  font-size: 10px; color: rgba(255,255,255,0.6); margin-bottom: 3px;
+}
+.ctl .lbl span { color: #fff; }
+.ctl .lbl .val { color: rgba(255,255,255,0.55); }
+.ctl-section {
+  color: rgba(255,255,255,0.45); font-size: 9px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  margin: 14px 0 7px; padding-bottom: 5px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+.ctl-section:first-child { margin-top: 0; }
+.ctl-note { color: rgba(255,255,255,0.35); font-size: 9px; line-height: 1.5; }
+.ctl-slider input[type=range] {
+  -webkit-appearance: none; appearance: none;
+  width: 100%; height: 6px; border-radius: 3px; background: #333; outline: none;
+}
+.ctl-slider input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 14px; height: 14px; border-radius: 50%; background: #fff; cursor: pointer;
+}
+.ctl-slider input[type=range]::-moz-range-thumb {
+  width: 14px; height: 14px; border: none; border-radius: 50%; background: #fff; cursor: pointer;
+}
+.select-wrap { position: relative; }
+.select-wrap::after {
+  content: "▾"; position: absolute; right: 9px; top: 50%; transform: translateY(-50%);
+  color: rgba(255,255,255,0.5); font-size: 9px; pointer-events: none;
+}
+.ctl-select select, .ctl-text input, .ctl-number input {
+  width: 100%; appearance: none; -webkit-appearance: none;
+  background: #1a1a1a; color: #fff; border: 1px solid #333; border-radius: 4px;
+  padding: 6px 22px 6px 8px; font: inherit; font-size: 11px; cursor: pointer;
+}
+.ctl-text input, .ctl-number input { padding-right: 8px; cursor: text; }
+.ctl-select select:focus, .ctl-text input:focus { outline: none; border-color: #666; }
+.seg { display: flex; gap: 4px; flex-wrap: wrap; }
+.seg-btn {
+  flex: 1 1 auto; min-width: 0; padding: 5px 6px; border: 1px solid #333;
+  border-radius: 4px; background: #1a1a1a; color: #888;
+  font: inherit; font-size: 10px; font-weight: 600; cursor: pointer;
+  transition: all 0.12s; white-space: nowrap;
+}
+.seg-btn:hover { color: #ccc; border-color: #555; }
+.seg-btn.active { background: #fff; color: #000; border-color: #fff; }
+.ctl-toggle { display: flex; justify-content: space-between; align-items: center; }
+.ctl-toggle .lbl-inline { font-size: 11px; color: #fff; }
+.switch {
+  width: 34px; height: 18px; border-radius: 9px; border: 1px solid #444;
+  background: #1a1a1a; position: relative; cursor: pointer; padding: 0; flex: 0 0 auto;
+  transition: background 0.15s, border-color 0.15s;
+}
+.switch i {
+  position: absolute; top: 2px; left: 2px; width: 12px; height: 12px;
+  border-radius: 50%; background: #777; transition: transform 0.15s, background 0.15s;
+}
+.switch.on { background: #fff; border-color: #fff; }
+.switch.on i { transform: translateX(16px); background: #000; }
+.tool-btn {
+  width: 100%; padding: 6px; border: none; border-radius: 3px;
+  background: #222; color: #888; font-size: 10px; cursor: pointer; margin-top: 8px;
+  font-weight: 600; font-family: inherit; transition: all 0.15s;
+}
+.tool-btn:hover { background: #333; color: #ccc; }
+.tool-btn.primary { background: #fff; color: #000; }
+.tool-btn.primary:hover { background: #ddd; }
+.ctl-file, .ctl-button { margin-bottom: 7px; }
+
+/* ============================================================
+   AsciiLab — layout
+   ============================================================ */
+#stage {
+  position: fixed; top: 0; left: 252px; right: 0; bottom: 0;
+  overflow: auto; padding: 22px;
+  display: flex; align-items: flex-start; justify-content: flex-start;
+}
+#ascii-out {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 10px; line-height: 1.2;
+  letter-spacing: 0; white-space: pre; color: #fff;
+  flex-shrink: 0;
+}
+#ascii-canvas {
+  display: none; flex-shrink: 0;
+}
+#hint {
+  position: fixed; top: 50%; left: calc(252px + (100vw - 252px) / 2);
+  transform: translate(-50%, -50%);
+  color: rgba(255,255,255,0.12); font-size: 13px;
+  text-align: center; pointer-events: none; user-select: none; line-height: 1.9;
+}
+#hint small { font-size: 10px; opacity: 0.6; display: block; }
+.export-canvas { display: none; }
+</style>
+</head>
+<body>
+
+<div id="panel">
+  <div class="panel-title">ASCIIlab</div>
+  <div id="controls"></div>
+</div>
+
+<div id="stage">
+  <pre id="ascii-out"></pre>
+  <canvas id="ascii-canvas"></canvas>
+</div>
+
+<div id="hint">Abre uma imagem<small>PNG · JPG · WebP — ou arrasta para cá</small></div>
+
+<canvas id="src-canvas" class="export-canvas"></canvas>
+<canvas id="exp-canvas" class="export-canvas"></canvas>
+
+<script>
+/* ============================================================
+   controls.js — inlined (defaltho _base)
+   ============================================================ */
+function buildPanel(container, schema, onChange) {
+  const values = {};
+  const els = {};
+  const fire = (id) => { if (onChange) onChange(values, id); };
+  function fmt(v, step) {
+    const dec = (String(step).split('.')[1] || '').length;
+    return dec ? Number(v).toFixed(Math.min(dec, 3)) : String(v);
+  }
+  function normOptions(opts) {
+    return (opts || []).map((o) => (typeof o === 'object') ? o : { value: o, label: String(o) });
+  }
+  function row(cls) {
+    const r = document.createElement('div');
+    r.className = 'ctl ' + (cls || '');
+    container.appendChild(r);
+    return r;
+  }
+  schema.forEach((def) => {
+    const t = def.type;
+    if (t === 'section') { const r = row('ctl-section'); r.textContent = def.label; return; }
+    if (t === 'note')    { const r = row('ctl-note');    r.textContent = def.text;  return; }
+    if (t === 'slider') {
+      values[def.id] = def.val;
+      const r = row('ctl-slider');
+      r.innerHTML = '<div class="lbl"><span>' + def.label + '</span><span class="val">' +
+        fmt(def.val, def.step) + '</span></div>' +
+        '<input type="range" min="' + def.min + '" max="' + def.max +
+        '" step="' + def.step + '" value="' + def.val + '">';
+      const input = r.querySelector('input'), valEl = r.querySelector('.val');
+      els[def.id] = input;
+      input.addEventListener('input', function () {
+        values[def.id] = parseFloat(this.value);
+        valEl.textContent = fmt(values[def.id], def.step);
+        fire(def.id);
+      });
+      return;
+    }
+    if (t === 'select') {
+      values[def.id] = def.val;
+      const r = row('ctl-select');
+      const opts = normOptions(def.options);
+      r.innerHTML = '<div class="lbl"><span>' + def.label + '</span></div>' +
+        '<div class="select-wrap"><select>' +
+        opts.map((o) => '<option value="' + o.value + '"' +
+          (o.value === def.val ? ' selected' : '') + '>' + o.label + '</option>').join('') +
+        '</select></div>';
+      const sel = r.querySelector('select');
+      els[def.id] = sel;
+      sel.addEventListener('change', function () { values[def.id] = this.value; fire(def.id); });
+      return;
+    }
+    if (t === 'segmented') {
+      values[def.id] = def.val;
+      const r = row('ctl-segmented');
+      const opts = normOptions(def.options);
+      r.innerHTML = '<div class="lbl"><span>' + def.label + '</span></div><div class="seg"></div>';
+      const seg = r.querySelector('.seg');
+      opts.forEach((o) => {
+        const b = document.createElement('button');
+        b.className = 'seg-btn' + (o.value === def.val ? ' active' : '');
+        b.textContent = o.label;
+        b.addEventListener('click', () => {
+          values[def.id] = o.value;
+          seg.querySelectorAll('.seg-btn').forEach((x) => x.classList.remove('active'));
+          b.classList.add('active');
+          fire(def.id);
+        });
+        seg.appendChild(b);
+      });
+      els[def.id] = seg;
+      return;
+    }
+    if (t === 'toggle') {
+      values[def.id] = !!def.val;
+      const r = row('ctl-toggle');
+      r.innerHTML = '<span class="lbl-inline">' + def.label + '</span>' +
+        '<button class="switch' + (def.val ? ' on' : '') +
+        '" role="switch" aria-checked="' + !!def.val + '"><i></i></button>';
+      const btn = r.querySelector('.switch');
+      els[def.id] = btn;
+      btn.addEventListener('click', () => {
+        values[def.id] = !values[def.id];
+        btn.classList.toggle('on', values[def.id]);
+        btn.setAttribute('aria-checked', values[def.id]);
+        fire(def.id);
+      });
+      return;
+    }
+    if (t === 'text') {
+      values[def.id] = def.val || '';
+      const r = row('ctl-text');
+      r.innerHTML = '<div class="lbl"><span>' + def.label + '</span></div>' +
+        '<input type="text" value="' + (def.val || '').replace(/"/g, '&quot;') +
+        '" placeholder="' + (def.placeholder || '') + '">';
+      const input = r.querySelector('input');
+      els[def.id] = input;
+      input.addEventListener('input', function () { values[def.id] = this.value; fire(def.id); });
+      return;
+    }
+    if (t === 'file') {
+      const r = row('ctl-file');
+      r.innerHTML = '<button class="tool-btn">' + (def.label || 'Upload') + '</button>' +
+        '<input type="file" accept="' + (def.accept || '') + '" hidden>';
+      const btn = r.querySelector('.tool-btn'), input = r.querySelector('input');
+      els[def.id] = input;
+      btn.addEventListener('click', () => input.click());
+      input.addEventListener('change', function () {
+        const f = this.files && this.files[0];
+        if (!f || !def.onFile) return;
+        const reader = new FileReader();
+        reader.onload = () => def.onFile(reader.result, f);
+        reader.readAsDataURL(f);
+      });
+      return;
+    }
+    if (t === 'button') {
+      const r = row('ctl-button');
+      r.innerHTML = '<button class="tool-btn' + (def.variant === 'primary' ? ' primary' : '') +
+        '">' + def.label + '</button>';
+      const btn = r.querySelector('button');
+      els[def.id] = btn;
+      btn.addEventListener('click', () => { if (def.onClick) def.onClick(values); });
+      return;
+    }
+  });
+  return {
+    values,
+    get: (id) => values[id],
+    el: (id) => els[id],
+    set(id, v) {
+      values[id] = v;
+      const e = els[id];
+      if (!e) return;
+      if (e.tagName === 'SELECT' || e.type === 'range' || e.type === 'text') {
+        e.value = v;
+        const valEl = e.parentElement && e.parentElement.querySelector('.val');
+        if (valEl && e.type !== 'text') valEl.textContent = v;
+      } else if (e.classList && e.classList.contains('switch')) {
+        e.classList.toggle('on', !!v); e.setAttribute('aria-checked', !!v);
+      }
+    },
+    refresh() { if (onChange) onChange(values, null); },
+  };
+}
+
+/* ============================================================
+   AsciiLab — core
+   History: ASCII art traces from PETSCII (1977) and CP437 ANSI
+   BBS art (1980s–90s) through demoscene and Unicode block/Braille
+   art (2000s+). The craft is about density mapping — matching
+   the visual weight of characters to image luminance.
+   ============================================================ */
+
+/* Character ramps — index 0 = claro (low luminance), last = escuro */
+const RAMPS = {
+  light:  ' .:-=+*#%@',
+  dense:  " .'`^\",:;Il!i><~+_-?][}{1)(|/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$",
+  block:  ' ░▒▓█',
+};
+
+let srcImage = null;
+let lastLines = null;
+let panel;
+
+/* ── Helpers ── */
+function clamp01(v) { return Math.min(1, Math.max(0, v)); }
+
+function luminanceBT709(r, g, b) {
+  return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+}
+
+function adjustLum(lum, contrast, gamma, invert) {
+  lum = Math.pow(lum, gamma);
+  lum = clamp01((lum - 0.5) * contrast + 0.5);
+  return invert ? 1 - lum : lum;
+}
+
+function getRamp(mode, custom) {
+  if (mode === 'custom' && custom && custom.length >= 2) return custom;
+  return RAMPS[mode] || RAMPS.light;
+}
+
+/* Sobel edge detection on luminance grid (values in [0,1]) */
+function sobel(lums, w, h) {
+  const mag = new Float32Array(w * h);
+  const ang = new Float32Array(w * h);
+  for (let y = 1; y < h - 1; y++) {
+    for (let x = 1; x < w - 1; x++) {
+      const tl = lums[(y-1)*w+(x-1)], tc = lums[(y-1)*w+x], tr = lums[(y-1)*w+(x+1)];
+      const ml = lums[y*w+(x-1)],                             mr = lums[y*w+(x+1)];
+      const bl = lums[(y+1)*w+(x-1)], bc = lums[(y+1)*w+x], br = lums[(y+1)*w+(x+1)];
+      const gx = -tl + tr + (-2*ml + 2*mr) + (-bl + br);
+      const gy =  tl + 2*tc + tr           + (-bl - 2*bc - br);
+      mag[y*w+x] = Math.sqrt(gx*gx + gy*gy);
+      ang[y*w+x] = Math.atan2(gy, gx) * 180 / Math.PI;
+    }
+  }
+  return { mag, ang };
+}
+
+function angleToChar(a) {
+  if ((22.5 <= a && a <= 67.5)   || (-157.5 <= a && a <= -112.5)) return '\\';
+  if ((67.5 <= a && a <= 112.5)  || (-112.5 <= a && a <= -67.5))  return '_';
+  if ((112.5 <= a && a <= 157.5) || (-67.5  <= a && a <= -22.5))  return '/';
+  return '|';
+}
+
+/* Scale image to w×h via offscreen canvas, return pixel data */
+function scaleImage(img, w, h) {
+  const sc = document.getElementById('src-canvas');
+  sc.width = w; sc.height = h;
+  const ctx = sc.getContext('2d');
+  ctx.drawImage(img, 0, 0, w, h);
+  return ctx.getImageData(0, 0, w, h).data;
+}
+
+/* ── Conversion modes ── */
+
+function convertAscii(img, opts) {
+  const { cols, contrast, gamma, invert, mode, customRamp, edges, edgeThreshold } = opts;
+  /* Monospace char aspect ratio ≈ 0.5 (width/height).
+     rows = cols × (imgH/imgW) × 0.5  */
+  const rows = Math.max(4, Math.round(cols * (img.naturalHeight / img.naturalWidth) * 0.5));
+  const data = scaleImage(img, cols, rows);
+  const ramp = getRamp(mode, customRamp);
+  const n = ramp.length;
+
+  /* Build luminance grid */
+  const lums = new Float32Array(cols * rows);
+  for (let i = 0; i < cols * rows; i++) {
+    const p = i * 4;
+    lums[i] = luminanceBT709(data[p], data[p+1], data[p+2]);
+  }
+
+  /* Optional Sobel */
+  let sobelData = null;
+  if (edges) sobelData = sobel(lums, cols, rows);
+
+  const lines = [];
+  for (let y = 0; y < rows; y++) {
+    const row = [];
+    for (let x = 0; x < cols; x++) {
+      const p = (y * cols + x) * 4;
+      const r = data[p], g = data[p+1], b = data[p+2];
+      let lum = adjustLum(lums[y*cols+x], contrast, gamma, invert);
+      let char;
+      if (edges && sobelData && sobelData.mag[y*cols+x] >= edgeThreshold) {
+        char = angleToChar(sobelData.ang[y*cols+x]);
+      } else {
+        char = ramp[Math.min(n-1, Math.floor(lum * n))];
+      }
+      row.push({ char, r, g, b });
+    }
+    lines.push(row);
+  }
+  return lines;
+}
+
+function convertBraille(img, opts) {
+  const { cols, contrast, gamma, invert } = opts;
+  /* Each Braille char covers 2×4 pixel dots.
+     Unicode Braille U+2800–U+28FF: bit positions per dot:
+       col0 col1
+         1    4   row 0
+         2    5   row 1
+         3    6   row 2
+         7    8   row 3
+     Bit mask: dot1=0x01, dot2=0x02, dot3=0x04, dot4=0x08,
+               dot5=0x10, dot6=0x20, dot7=0x40, dot8=0x80    */
+  const DOT = [[0,0,0x01],[0,1,0x02],[0,2,0x04],[1,0,0x08],
+               [1,1,0x10],[1,2,0x20],[0,3,0x40],[1,3,0x80]];
+  const THRESH = 0.45;
+
+  const dotsW = cols * 2;
+  const dotsH = Math.max(4, Math.round(dotsW * (img.naturalHeight / img.naturalWidth) * 0.5));
+  const rows = Math.floor(dotsH / 4) || 1;
+  const data = scaleImage(img, dotsW, rows * 4);
+
+  const lines = [];
+  for (let cy = 0; cy < rows; cy++) {
+    const row = [];
+    for (let cx = 0; cx < cols; cx++) {
+      let bits = 0, rS = 0, gS = 0, bS = 0;
+      for (const [dx, dy, mask] of DOT) {
+        const ix = cx*2+dx, iy = cy*4+dy;
+        const p = (iy*dotsW + ix) * 4;
+        const pr = data[p], pg = data[p+1], pb = data[p+2];
+        rS += pr; gS += pg; bS += pb;
+        const lum = adjustLum(luminanceBT709(pr, pg, pb), opts.contrast, opts.gamma, opts.invert);
+        if (1 - lum > THRESH) bits |= mask;
+      }
+      row.push({
+        char: String.fromCodePoint(0x2800 + bits),
+        r: Math.round(rS/8), g: Math.round(gS/8), b: Math.round(bS/8),
+      });
+    }
+    lines.push(row);
+  }
+  return lines;
+}
+
+/* ── Rendering ── */
+
+function escHtml(c) {
+  if (c === '&') return '&amp;';
+  if (c === '<') return '&lt;';
+  if (c === '>') return '&gt;';
+  return c;
+}
+
+function renderText(lines, pre, colorize) {
+  if (!colorize) {
+    pre.textContent = lines.map(r => r.map(c => c.char).join('')).join('\n');
+  } else {
+    pre.innerHTML = lines.map(r =>
+      r.map(c => '<span style="color:rgb(' + c.r + ',' + c.g + ',' + c.b + ')">' +
+        escHtml(c.char) + '</span>').join('')
+    ).join('\n');
+  }
+}
+
+function renderToCanvas(lines, targetCanvas, colorize, fontSize) {
+  const fs = fontSize || 10;
+  const cw = fs * 0.6;          /* Courier New char width ≈ 0.6× font-size */
+  const ch = fs * 1.2;
+  const cols = lines[0] ? lines[0].length : 0;
+  const rows = lines.length;
+  targetCanvas.width  = Math.ceil(cols * cw);
+  targetCanvas.height = Math.ceil(rows * ch);
+  const ctx = targetCanvas.getContext('2d');
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, targetCanvas.width, targetCanvas.height);
+  ctx.font = fs + 'px "Courier New", monospace';
+  ctx.textBaseline = 'top';
+  lines.forEach((row, y) => {
+    row.forEach((cell, x) => {
+      ctx.fillStyle = colorize ? 'rgb(' + cell.r + ',' + cell.g + ',' + cell.b + ')' : '#fff';
+      ctx.fillText(cell.char, x * cw, y * ch);
+    });
+  });
+}
+
+function showPre(show) {
+  document.getElementById('ascii-out').style.display = show ? '' : 'none';
+  document.getElementById('ascii-canvas').style.display = show ? 'none' : 'block';
+}
+
+/* ── Main render ── */
+function render() {
+  if (!srcImage) return;
+  const v = panel.values;
+  const opts = {
+    cols:          Math.round(v.cols),
+    contrast:      v.contrast,
+    gamma:         v.gamma,
+    invert:        v.invert,
+    mode:          v.mode,
+    customRamp:    v.ramp,
+    edges:         v.edges,
+    edgeThreshold: v.edgeThreshold,
+  };
+
+  lastLines = (v.mode === 'braille')
+    ? convertBraille(srcImage, opts)
+    : convertAscii(srcImage, opts);
+
+  const colorize = v.color;
+
+  if (v.out === 'canvas') {
+    showPre(false);
+    renderToCanvas(lastLines, document.getElementById('ascii-canvas'), colorize, 10);
+  } else {
+    showPre(true);
+    renderText(lastLines, document.getElementById('ascii-out'), v.out === 'html' && colorize);
+  }
+
+  document.getElementById('hint').style.display = 'none';
+}
+
+function doExportPng() {
+  if (!lastLines) return;
+  const exp = document.getElementById('exp-canvas');
+  renderToCanvas(lastLines, exp, panel.values.color, 14);
+  const a = document.createElement('a');
+  a.download = 'asciilab.png';
+  a.href = exp.toDataURL('image/png');
+  a.click();
+}
+
+function doCopy() {
+  if (!lastLines) return;
+  const text = lastLines.map(r => r.map(c => c.char).join('')).join('\n');
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = panel.el('copy');
+    if (btn) {
+      const orig = btn.textContent;
+      btn.textContent = 'Copiado!';
+      setTimeout(() => btn.textContent = orig, 1400);
+    }
+  });
+}
+
+function loadImage(dataUrl) {
+  const img = new Image();
+  img.onload = () => { srcImage = img; render(); };
+  img.src = dataUrl;
+}
+
+/* ── Panel ── */
+panel = buildPanel(document.getElementById('controls'), [
+  { type:'file', id:'img', label:'Abrir imagem', accept:'image/*', onFile: loadImage },
+  { type:'section', label:'Resolução' },
+  { type:'slider', id:'cols', label:'Colunas', min:20, max:240, step:1, val:80 },
+  { type:'section', label:'Caracteres' },
+  { type:'select', id:'mode', label:'Modo', options:[
+    { value:'light',   label:'ASCII leve' },
+    { value:'dense',   label:'ASCII denso' },
+    { value:'block',   label:'Block  ░▒▓█' },
+    { value:'braille', label:'Braille ⠿' },
+    { value:'custom',  label:'Custom' },
+  ], val:'light' },
+  { type:'text', id:'ramp', label:'Ramp custom', val:'', placeholder:'claro → escuro' },
+  { type:'section', label:'Imagem' },
+  { type:'slider', id:'contrast', label:'Contraste', min:0.1, max:4,   step:0.05, val:1 },
+  { type:'slider', id:'gamma',    label:'Gamma',     min:0.2, max:3,   step:0.05, val:1 },
+  { type:'toggle', id:'invert',   label:'Inverter', val:false },
+  { type:'toggle', id:'edges',    label:'Bordas (Sobel)', val:false },
+  { type:'slider', id:'edgeThreshold', label:'Limiar bordas', min:0.05, max:2, step:0.05, val:0.4 },
+  { type:'section', label:'Cor' },
+  { type:'toggle', id:'color', label:'Cor original', val:false },
+  { type:'section', label:'Output' },
+  { type:'segmented', id:'out', label:'Visualizar', options:[
+    { value:'text',   label:'Texto' },
+    { value:'html',   label:'Colorido' },
+    { value:'canvas', label:'Canvas' },
+  ], val:'text' },
+  { type:'button', id:'copy',   label:'Copiar texto',   onClick: doCopy },
+  { type:'button', id:'export', label:'Exportar PNG', variant:'primary', onClick: doExportPng },
+], render);
+
+/* Drag & drop */
+document.body.addEventListener('dragover', e => e.preventDefault());
+document.body.addEventListener('drop', e => {
+  e.preventDefault();
+  const f = e.dataTransfer.files[0];
+  if (!f || !f.type.startsWith('image/')) return;
+  const reader = new FileReader();
+  reader.onload = () => loadImage(reader.result);
+  reader.readAsDataURL(f);
+});
+</script>
+</body>
+</html>
